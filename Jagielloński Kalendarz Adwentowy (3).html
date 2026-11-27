@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jagielloński Kalendarz Adwentowy</title>
+  <style>
+    /* ==========================================================================
+       1. ZMIENNE KOLORYSTYCZNE I RESET (BARWY JAGIELLONII BIAŁYSTOK)
+       ========================================================================== */
+    :root {
+      --jaga-yellow: #FFD200;
+      --jaga-gold: #F59E0B;
+      --jaga-red: #D91E18;
+      --jaga-dark-red: #9E120E;
+      --jaga-black: #111111;
+      --jaga-surface: #1A1A1A;
+      --jaga-card-light: #FFFDF7;
+      --jaga-text-dark: #141414;
+      --jaga-text-light: #FFFFFF;
+      --jaga-border: rgba(255, 210, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      min-height: 100%;
+      width: 100%;
+      overflow-x: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      text-align: center;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(217, 30, 24, 0.28) 0%, transparent 45%),
+        radial-gradient(circle at 85% 15%, rgba(255, 210, 0, 0.25) 0%, transparent 45%),
+        linear-gradient(180deg, #161616 0%, #241812 50%, #111111 100%);
+      color: var(--jaga-text-light);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ==========================================================================
+       2. WARSTWA CODZIENNYCH ANIMACJI TŁA (17 UNIKALNYCH EFEKTÓW)
+       ========================================================================== */
+    #fx-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      overflow: hidden;
+    }
+
+    /* Spadające elementy w tle (śnieg, prezenty, piłki, czapki, pierniczki itd.) */
+    .fx-drop {
+      position: absolute;
+      top: -60px;
+      user-select: none;
+      will-change: transform, opacity;
+      animation-name: fxFall;
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+    }
+
+    @keyframes fxFall {
+      0% {
+        transform: translate3d(0, -40px, 0) rotate(0deg);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.92;
+      }
+      90% {
+        opacity: 0.92;
+      }
+      100% {
+        transform: translate3d(var(--drift, 30px), calc(100vh + 80px), 0) rotate(var(--rot, 360deg));
+        opacity: 0;
+      }
+    }
+
+    /* Biegnące dołem skrzaty (Dzień 3) */
+    .fx-runner {
+      position: fixed;
+      bottom: 8px;
+      left: -120px;
+      font-size: 28px;
+      white-space: nowrap;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
+      animation: fxRunAcross linear forwards;
+    }
+
+    @keyframes fxRunAcross {
+      0% {
+        transform: translateX(-120px) translateY(0);
+      }
+      25% {
+        transform: translateX(28vw) translateY(-10px);
+      }
+      50% {
+        transform: translateX(55vw) translateY(0);
+      }
+      75% {
+        transform: translateX(82vw) translateY(-10px);
+      }
+      100% {
+        transform: translateX(calc(100vw + 140px)) translateY(0);
+      }
+    }
+
+    /* Mroźny szron na krawędziach ekranu (Dzień 15 - Freeze!) */
+    .fx-frost-vignette {
+      position: fixed;
+      inset: 0;
+      box-shadow: inset 0 0 70px 18px rgba(173, 232, 255, 0.45);
+      border: 4px solid rgba(200, 240, 255, 0.35);
+      animation: fxFrostPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes fxFrostPulse {
+      0%, 100% { opacity: 0.65; }
+      50% { opacity: 1; }
+    }
+
+    /* Świąteczny pociąg / wąż jadący dołem ekranu (Dzień 16) */
+    .fx-train {
+      position: fixed;
+      bottom: 10px;
+      left: -340px;
+      font-size: 28px;
+      background: rgba(17, 17, 17, 0.85);
+      border: 2px solid var(--jaga-yellow);
+      border-radius: 999px;
+      padding: 4px 14px;
+      white-space: nowrap;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+      animation: fxTrainRide 14s linear infinite;
+    }
+
+    @keyframes fxTrainRide {
+      0% { transform: translateX(-340px); }
+      100% { transform: translateX(calc(100vw + 360px)); }
+    }
+
+    /* Fajerwerki (Dzień 17) */
+    .fx-firework {
+      position: absolute;
+      font-size: 32px;
+      animation: fxBoom 1.8s ease-out forwards;
+    }
+
+    @keyframes fxBoom {
+      0% { transform: scale(0.2); opacity: 1; }
+      70% { transform: scale(1.6); opacity: 0.95; }
+      100% { transform: scale(2.1); opacity: 0; }
+    }
+
+    /* Konfetti po otwarciu okienka */
+    .confetti-piece {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      z-index: 999;
+      pointer-events: none;
+      border-radius: 2px;
+      animation: confettiFall 2.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+
+    @keyframes confettiFall {
+      0% {
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate3d(var(--cx, 0px), var(--cy, 260px), 0) rotate(720deg) scale(0.5);
+        opacity: 0;
+      }
+    }
+
+    /* ==========================================================================
+       3. GŁÓWNY KONTENER I NAGŁÓWEK Z HERBEM 1:1
+       ========================================================================== */
+    .app-wrapper {
+      position: relative;
+      z-index: 10;
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 20px 14px 48px;
+      text-align: center;
+    }
+
+    .hero-header {
+      background: linear-gradient(145deg, #1E1E1E 0%, #111111 100%);
+      border: 2px solid var(--jaga-yellow);
+      border-radius: 24px;
+      padding: 22px 16px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    /* Pasek żółto-czerwony u góry karty nagłówka */
+    .hero-header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--jaga-yellow) 0px,
+        var(--jaga-yellow) 24px,
+        var(--jaga-red) 24px,
+        var(--jaga-red) 48px
+      );
+    }
+
+    .top-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(255, 210, 0, 0.14);
+      border: 1px solid rgba(255, 210, 0, 0.45);
+      color: var(--jaga-yellow);
+      font-size: 11pt;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    /* Medalion na herb Jagiellonii 1:1 bez zniekształceń ani dodatkowych czapeczek */
+    .crest-medallion {
+      width: 116px;
+      height: 116px;
+      aspect-ratio: 1 / 1;
+      margin: 0 auto 14px;
+      background: rgba(0, 0, 0, 0.88);
+      border: 3px solid var(--jaga-yellow);
+      border-radius: 50%;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 0 0 4px rgba(217, 30, 24, 0.55),
+        0 8px 22px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
+    }
+
+    .crest-medallion img,
+    .crest-medallion svg {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      display: block;
+    }
+
+    .main-title {
+      font-size: clamp(1.65rem, 4.5vw, 2.45rem);
+      font-weight: 900;
+      line-height: 1.15;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--jaga-yellow);
+      text-shadow: 0 3px 0 var(--jaga-dark-red);
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    .main-title span {
+      display: block;
+      color: #FFFFFF;
+      text-shadow: 0 3px 0 var(--jaga-red);
+    }
+
+    /* Czytelny akapit powitalny zoptymalizowany pod smartfony (czcionka 11pt, center) */
+    .welcome-box {
+      max-width: 680px;
+      margin: 0 auto 14px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 210, 0, 0.35);
+      border-radius: 16px;
+      padding: 14px 16px;
+      font-size: 11pt;
+      line-height: 1.55;
+      color: #F5F5F5;
+      text-align: center;
+    }
+
+    .welcome-box strong {
+      color: var(--jaga-yellow);
+    }
+
+    /* Pasek statusu dnia i postępu */
+    .status-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 8px;
+      font-size: 11pt;
+      text-align: center;
+    }
+
+    .status-chip {
+      background: #222222;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 11pt;
+      color: #EAEAEA;
+      text-align: center;
+    }
+
+    .status-chip b {
+      color: var(--jaga-yellow);
+    }
+
+    /* ==========================================================================
+       4. KOMUNIKAT TOAST (ZAMIAST ALERT())
+       ========================================================================== */
+    #toast-banner {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-130%);
+      z-index: 1000;
+      width: calc(100% - 28px);
+      max-width: 460px;
+      background: #141414;
+      border: 2px solid var(--jaga-yellow);
+      border-radius: 16px;
+      padding: 12px 16px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.75);
+      font-size: 11pt;
+      line-height: 1.45;
+      color: #FFFFFF;
+      text-align: center;
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+    }
+
+    #toast-banner.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ==========================================================================
+       5. SIATKA 17 KOMPAKTOWYCH OKIENEK (2 KOLUMNY MOBILE, 3 TABLET, 4 DESKTOP)
+       ========================================================================== */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    @media (min-width: 640px) {
+      .calendar-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+    }
+
+    @media (min-width: 920px) {
+      .calendar-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+    }
+
+    /* Pojedyncze okienko (kontener perspektywy 3D) */
+    .door-card {
+      position: relative;
+      min-height: 225px;
+      border-radius: 18px;
+      perspective: 1000px;
+      cursor: pointer;
+      user-select: none;
+      text-align: center;
+    }
+
+    @media (min-width: 640px) {
+      .door-card {
+        min-height: 240px;
+      }
+    }
+
+    .door-card.shake {
+      animation: doorShake 0.42s ease-in-out;
+    }
+
+    @keyframes doorShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px) rotate(-1.5deg); }
+      40% { transform: translateX(6px) rotate(1.5deg); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    /* Wnętrze okienka (widoczne po otwarciu drzwiczek) */
+    .door-inside {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 225px;
+      background: var(--jaga-card-light);
+      color: var(--jaga-text-dark);
+      border-radius: 18px;
+      border: 2px solid var(--jaga-yellow);
+      padding: 10px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    @media (min-width: 640px) {
+      .door-inside {
+        min-height: 240px;
+      }
+    }
+
+    .inside-top-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .inside-day-pill {
+      background: var(--jaga-red);
+      color: #FFFFFF;
+      font-weight: 800;
+      font-size: 11pt;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-align: center;
+    }
+
+    .inside-date-tag {
+      font-size: 11pt;
+      font-weight: 600;
+      color: #555555;
+      text-align: center;
+    }
+
+    .inside-art {
+      width: 62px;
+      height: 62px;
+      margin: 2px auto 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .inside-art svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .inside-title {
+      font-size: 11pt;
+      font-weight: 800;
+      line-height: 1.25;
+      color: #111111;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    .inside-emojis {
+      font-size: 11pt;
+      line-height: 1.2;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .inside-actions {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: auto;
+    }
+
+    .btn-details {
+      width: 100%;
+      background: var(--jaga-yellow);
+      color: #111111;
+      border: none;
+      border-radius: 10px;
+      padding: 6px 8px;
+      font-size: 11pt;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .btn-details:hover {
+      background: #FFE047;
+    }
+
+    .btn-done {
+      width: 100%;
+      background: #EFEFEF;
+      color: #333333;
+      border: 1px solid #D4D4D4;
+      border-radius: 10px;
+      padding: 5px 8px;
+      font-size: 11pt;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-done.is-done {
+      background: #16A34A;
+      color: #FFFFFF;
+      border-color: #15803D;
+    }
+
+    /* Zewnętrzne drzwiczki 3D */
+    .door-front {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+      transform-origin: left center;
+      transition: transform 0.65s cubic-bezier(0.34, 1.45, 0.64, 1), opacity 0.35s ease;
+      backface-visibility: hidden;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+      z-index: 3;
+    }
+
+    /* Motywy kolorystyczne drzwiczek w barwach Jagiellonii */
+    .theme-red {
+      background: linear-gradient(155deg, #E3241D 0%, #9E120E 100%);
+      border: 2px solid var(--jaga-yellow);
+      color: #FFFFFF;
+    }
+
+    .theme-yellow {
+      background: linear-gradient(155deg, #FFE033 0%, #F5B800 100%);
+      border: 2px solid #111111;
+      color: #111111;
+    }
+
+    .theme-black {
+      background: linear-gradient(155deg, #262626 0%, #111111 100%);
+      border: 2px solid var(--jaga-yellow);
+      color: var(--jaga-yellow);
+    }
+
+    /* Ozdobna ramka wewnętrzna drzwiczek */
+    .door-front::after {
+      content: "";
+      position: absolute;
+      inset: 7px;
+      border-radius: 12px;
+      border: 1px dashed currentColor;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .door-card.is-open .door-front {
+      transform: rotateY(-108deg);
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .door-top-meta {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11pt;
+      font-weight: 700;
+      opacity: 0.9;
+    }
+
+    .door-number {
+      font-size: 2.5rem;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -1px;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      text-align: center;
+    }
+
+    .door-badge-status {
+      font-size: 11pt;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(2px);
+      text-align: center;
+    }
+
+    .theme-yellow .door-badge-status {
+      background: rgba(17, 17, 17, 0.14);
+    }
+
+    .door-card.is-locked .door-front {
+      filter: saturate(0.75) brightness(0.88);
+    }
+
+    .door-card.is-today .door-front {
+      box-shadow: 0 0 0 3px #FFFFFF, 0 10px 26px rgba(255, 210, 0, 0.55);
+    }
+
+    /* ==========================================================================
+       6. OKNO MODALNE ZE SZCZEGÓŁAMI ZADANIA (CZCIONKA 11PT, CENTER)
+       ========================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 440px;
+      background: var(--jaga-card-light);
+      color: var(--jaga-text-dark);
+      border: 3px solid var(--jaga-yellow);
+      border-radius: 24px;
+      padding: 22px 18px 20px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      animation: modalPop 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes modalPop {
+      0% { transform: scale(0.88); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-day-badge {
+      display: inline-block;
+      background: var(--jaga-red);
+      color: #FFFFFF;
+      font-size: 11pt;
+      font-weight: 800;
+      padding: 5px 14px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .modal-art {
+      width: 104px;
+      height: 104px;
+      margin: 0 auto 12px;
+    }
+
+    .modal-art svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .modal-title {
+      font-size: 14pt;
+      font-weight: 900;
+      color: #111111;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .modal-emojis {
+      font-size: 16pt;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .modal-desc {
+      font-size: 11pt;
+      line-height: 1.55;
+      color: #222222;
+      background: #FFF6D6;
+      border: 1px solid #F3D266;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .modal-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn-modal-primary {
+      width: 100%;
+      background: #16A34A;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 11pt;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .btn-modal-primary.is-done {
+      background: #374151;
+    }
+
+    .btn-modal-close {
+      width: 100%;
+      background: #111111;
+      color: var(--jaga-yellow);
+      border: none;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 11pt;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    /* ==========================================================================
+       7. PANEL ORGANIZATORA (UKRYWANY PRZY ?mode=team)
+       ========================================================================== */
+    .organizer-panel {
+      background: #181818;
+      border: 2px dashed var(--jaga-yellow);
+      border-radius: 20px;
+      padding: 18px 16px;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .organizer-panel.hidden {
+      display: none !important;
+    }
+
+    .organizer-title {
+      font-size: 12pt;
+      font-weight: 800;
+      color: var(--jaga-yellow);
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .organizer-desc {
+      font-size: 11pt;
+      line-height: 1.5;
+      color: #DDDDDD;
+      max-width: 620px;
+      margin: 0 auto 14px;
+      text-align: center;
+    }
+
+    .organizer-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    @media (min-width: 640px) {
+      .organizer-controls {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+    }
+
+    .sim-select {
+      width: 100%;
+      max-width: 340px;
+      background: #262626;
+      color: #FFFFFF;
+      border: 2px solid var(--jaga-yellow);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 11pt;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .btn-org {
+      background: var(--jaga-red);
+      color: #FFFFFF;
+      border: 1px solid var(--jaga-yellow);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 11pt;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .btn-org:hover {
+      opacity: 0.92;
+    }
+
+    .btn-org-secondary {
+      background: #2B2B2B;
+      color: var(--jaga-yellow);
+      border: 1px solid rgba(255, 210, 0, 0.5);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 11pt;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      font-size: 11pt;
+      color: #B5B5B5;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- Warstwa codziennych animacji tła (śnieg, prezenty, skrzaty, pociąg itd.) -->
+  <div id="fx-layer" aria-hidden="true"></div>
+
+  <!-- Powiadomienie na górze ekranu (zamiast alert()) -->
+  <div id="toast-banner" role="status" aria-live="polite"></div>
+
+  <main class="app-wrapper">
+    <!-- NAGŁÓWEK Z HERBEM JAGIELLONII BIAŁYSTOK 1:1 -->
+    <header class="hero-header">
+      <div class="top-pill">
+        <span>⚽</span>
+        <span>Biuro Jagiellonii • Edycja Świąteczna</span>
+        <span>🎄</span>
+      </div>
+
+      <!-- Herb Jagiellonii 1:1 z linku z bezpiecznym fallbackiem do oficjalnego herbu wektorowego -->
+      <div class="crest-medallion">
+        <img
+          id="jaga-crest-img"
+          src="https://share.google/2NVlZzfRAPpipmpmn"
+          alt="Herb Jagiellonii Białystok"
+          onerror="this.style.display='none'; document.getElementById('jaga-crest-fallback').style.display='block';"
+        />
+        <!-- Oficjalny wektorowy herb Jagiellonii Białystok (tarcza ukośnie żółto-czerwona, czarno-biała podwójna obwódka, czarne gotyckie 'J', biała 5-ramienna gwiazda nad tarczą) -->
+        <svg id="jaga-crest-fallback" style="display:none;" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg" aria-label="Herb Jagiellonii Białystok">
+          <!-- Biała 5-ramienna gwiazda nad tarczą -->
+          <polygon points="100,4 105,18 120,18 108,27 112,41 100,32 88,41 92,27 80,18 95,18" fill="#FFFFFF" stroke="#D4D4D4" stroke-width="1"/>
+          <!-- Zewnętrzna czarna tarcza -->
+          <path d="M100,48 C118,48 134,54 146,64 C144,76 150,86 164,90 L164,142 C164,178 136,204 100,224 C64,204 36,178 36,142 L36,90 C50,86 56,76 54,64 C66,54 82,48 100,48 Z" fill="#111111"/>
+          <!-- Biała obwódka wewnętrzna -->
+          <path d="M100,54 C116,54 130,59 140,68 C139,80 145,90 158,94 L158,141 C158,173 132,197 100,216 C68,197 42,173 42,141 L42,94 C55,90 61,80 60,68 C70,59 84,54 100,54 Z" fill="#FFFFFF"/>
+          <!-- Czarna ramka wewnętrzna -->
+          <path d="M100,59 C114,59 127,64 136,72 C135,83 141,93 153,97 L153,140 C153,169 129,191 100,209 C71,191 47,169 47,140 L47,97 C59,93 65,83 64,72 C73,64 86,59 100,59 Z" fill="#111111"/>
+          <!-- Wnętrze tarczy podzielone ukośnie: żółte (góra-prawo) i czerwone (dół-lewo) -->
+          <defs>
+            <clipPath id="shieldInnerClip">
+              <path d="M100,64 C112,64 123,68 131,75 C131,86 137,96 148,100 L148,139 C148,165 126,185 100,202 C74,185 52,165 52,139 L52,100 C63,96 69,86 69,75 C77,68 88,64 100,64 Z"/>
+            </clipPath>
+          </defs>
+          <g clip-path="url(#shieldInnerClip)">
+            <rect x="45" y="55" width="110" height="155" fill="#FFD200"/>
+            <polygon points="45,95 155,185 155,215 45,215" fill="#D91E18"/>
+          </g>
+          <!-- Stylizowana czarna gotycka litera J -->
+          <path d="M72,88 C86,78 106,82 126,82 L122,90 C106,92 92,90 83,95 L89,106 L79,113 L68,94 Z" fill="#111111"/>
+          <path d="M84,96 C96,93 108,93 118,91 C111,106 109,128 111,150 C112,168 104,182 88,187 C77,183 68,175 63,163 L75,160 C79,168 84,173 91,175 C98,168 100,156 99,141 C98,123 100,107 104,98 C97,100 90,100 84,96 Z" fill="#111111"/>
+          <path d="M126,89 C121,105 120,127 122,148 C124,169 114,184 97,190 C106,190 116,186 123,178 C130,169 132,157 130,141 C128,121 129,102 133,87 Z" fill="#111111"/>
+        </svg>
+      </div>
+
+      <h1 class="main-title">
+        Jagielloński
+        <span>Kalendarz Adwentowy</span>
+      </h1>
+
+      <p class="welcome-box">
+        Kliknij dzisiejsze okienko, aby odkryć świąteczne wyzwanie dla naszego biura! 🎅
+        Każdego dnia odblokowujemy zadanie na <strong>DZIŚ</strong> oraz podgląd na <strong>JUTRO</strong> (a w piątek także na poniedziałek), żeby każdy zdążył się przygotować. Zero presji, maksimum żółto-czerwonego humoru! 🟡🔴
+      </p>
+
+      <div class="status-strip">
+        <div class="status-chip" id="status-date-label">📅 Dzisiejsza data: <b>1 grudnia</b></div>
+        <div class="status-chip" id="status-progress-label">✅ Wykonane: <b>0 / 17</b></div>
+        <div class="status-chip" id="status-fx-label">✨ Efekt dnia: <b>Padający śnieg</b></div>
+      </div>
+    </header>
+
+    <!-- SIATKA 17 OKIENEK KALENDARZA -->
+    <section class="calendar-grid" id="calendar-grid" aria-label="Okienka kalendarza adwentowego"></section>
+
+    <!-- PANEL ORGANIZATORA (UKRYWANY GDY W LINKU JEST ?mode=team) -->
+    <section class="organizer-panel" id="organizer-panel" aria-label="Panel Organizatora">
+      <h2 class="organizer-title">🛠️ Panel Organizatora (Symulator Daty i Animacji)</h2>
+      <p class="organizer-desc">
+        Tutaj możesz przetestować dowolny dzień kalendarza, sprawdzić blokadę okienek (Dziś + Jutro) oraz podejrzeć wszystkie 17 animacji tła. Gdy udostępniasz kalendarz całemu biuru, skopiuj link z ukrytym panelem poniżej.
+      </p>
+
+      <div class="organizer-controls">
+        <select id="sim-date-select" class="sim-select" aria-label="Wybierz symulowaną datę"></select>
+        <button type="button" id="copy-team-link-btn" class="btn-org">📋 Kopiuj link dla zespołu (?mode=team)</button>
+        <button type="button" id="reset-progress-btn" class="btn-org-secondary">🔄 Resetuj otwarte okienka</button>
+      </div>
+    </section>
+
+    <p class="footer-note">
+      Bawcie się dobrze w żółto-czerwonym klimacie! 🟡🔴🎄
+    </p>
+  </main>
+
+  <!-- OKNO MODALNE ZE SZCZEGÓŁAMI ZADANIA -->
+  <div class="modal-backdrop" id="task-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <div class="modal-day-badge" id="modal-day-badge">Dzień 1 • 1 grudnia (Wtorek)</div>
+      <div class="modal-art" id="modal-art"></div>
+      <h3 class="modal-title" id="modal-title">Tytuł zadania</h3>
+      <div class="modal-emojis" id="modal-emojis">🎅🎄</div>
+      <p class="modal-desc" id="modal-desc">Opis zadania</p>
+      <div class="modal-buttons">
+        <button type="button" id="modal-done-btn" class="btn-modal-primary">✅ Oznacz jako wykonane</button>
+        <button type="button" id="modal-close-btn" class="btn-modal-close">Zamknij okienko</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      /* ========================================================================
+         1. HARMONOGRAM 17 DNI JAGIELLOŃSKIEGO KALENDARZA ADWENTOWEGO
+         ======================================================================== */
+      var DAYS_DATA = [
+        {
+          day: 1,
+          iso: "2026-12-01",
+          dateLabel: "1 grudnia (Wtorek)",
+          shortDate: "1 gru",
+          title: "Mikołajkowe „Ho, ho, ho!” zamiast „Cześć”",
+          desc: "Przez cały dzisiejszy dzień zamiast „dzień dobry” czy „hej” witamy się głośnym „Ho, ho, ho!”. Rzucaj je przy każdym wejściu do pokoju, kuchni czy mijaniu sekretariatu! 🎅",
+          emojis: "🎅🎄👋",
+          theme: "theme-red",
+          fxName: "Padający śnieg ❄️"
+        },
+        {
+          day: 2,
+          iso: "2026-12-02",
+          dateLabel: "2 grudnia (Środa)",
+          shortDate: "2 gru",
+          title: "Świąteczne biurka",
+          desc: "Dziś każdy zamienia swoje biurko w zimową krainę czarów. Dekoracje mogą zostać z Tobą przez cały grudzień – im bardziej błyszcząco, tym lepiej! ✨🎄",
+          emojis: "✨🎄💻",
+          theme: "theme-yellow",
+          fxName: "Spadające prezenty 🎁"
+        },
+        {
+          day: 3,
+          iso: "2026-12-03",
+          dateLabel: "3 grudnia (Czwartek)",
+          shortDate: "3 gru",
+          title: "Świąteczna tożsamość!",
+          desc: "Odbierz dziś swoją przypinkę, naklejkę lub imienną karteczkę ze świąteczno-sportowym pseudonimem (np. Trener Renifer czy Kapitan Piernik) i wejdź w grudniowy trening! 🪪🎅",
+          emojis: "🪪🎅🏅",
+          theme: "theme-black",
+          fxName: "Biegnące psotne skrzaty 🧝"
+        },
+        {
+          day: 4,
+          iso: "2026-12-04",
+          dateLabel: "4 grudnia (Piątek)",
+          shortDate: "4 gru",
+          title: "Dzień klubowych barw",
+          desc: "Wszyscy przychodzą w barwach! Żółto-czerwone koszulki, szaliki lub bluzy klubowe obowiązkowe przez cały dzień! 💛❤️⚽",
+          emojis: "💛❤️⚽",
+          theme: "theme-yellow",
+          fxName: "Żółto-czerwone piłki i szaliki ⚽"
+        },
+        {
+          day: 5,
+          iso: "2026-12-07",
+          dateLabel: "7 grudnia (Poniedziałek)",
+          shortDate: "7 gru",
+          title: "Dzień nakrycia głowy",
+          desc: "Przyjdź dziś do pracy w czapce Mikołaja, rogach renifera lub innym zabawnym nakryciu głowy. Nosimy je dumnie przez cały dzień! 🦌🎅",
+          emojis: "🦌🎅🎩",
+          theme: "theme-yellow",
+          fxName: "Czapki Mikołaja i rogi renifera 🎅"
+        },
+        {
+          day: 6,
+          iso: "2026-12-08",
+          dateLabel: "8 grudnia (Wtorek)",
+          shortDate: "8 gru",
+          title: "Dzień memów",
+          desc: "Zajrzyj na firmową grupę na WhatsAppie, zobacz wrzucone tam zdjęcie i dodaj swój najśmieszniejszy opis. Zobaczymy, kto dziś rozbije bank! 😂📱",
+          emojis: "😂📱🐶",
+          theme: "theme-black",
+          fxName: "Emotki śmiechu i memy 😂"
+        },
+        {
+          day: 7,
+          iso: "2026-12-09",
+          dateLabel: "9 grudnia (Środa)",
+          shortDate: "9 gru",
+          title: "Dzień świątecznych skarpetek",
+          desc: "Załóż najbardziej kolorowe lub świąteczne skarpetki, jakie masz w szafie! 🎄 Bądź w gotowości na wspólne pamiątkowe zdjęcie. 🧦📸",
+          emojis: "🧦📸🎄",
+          theme: "theme-red",
+          fxName: "Świąteczne skarpetki 🧦"
+        },
+        {
+          day: 8,
+          iso: "2026-12-10",
+          dateLabel: "10 grudnia (Czwartek)",
+          shortDate: "10 gru",
+          title: "Zapach świąt",
+          desc: "W kuchni czekają na Was pachnące pierniczki i soczyste mandarynki. Wpadnijcie na chwilę, poczęstujcie się i poczujcie prawdziwy klimat świąt! 🍪🍊",
+          emojis: "🍪🍊✨",
+          theme: "theme-red",
+          fxName: "Pierniczki i mandarynki 🍪🍊"
+        },
+        {
+          day: 9,
+          iso: "2026-12-11",
+          dateLabel: "11 grudnia (Piątek)",
+          shortDate: "11 gru",
+          title: "Tajny Komplement",
+          desc: "Wylosuj dziś jedną osobę z zespołu i wyślij jej krótką, miłą wiadomość z podziękowaniem za wspólną pracę i atmosferę w tym roku. 💌💛",
+          emojis: "💌💛✨",
+          theme: "theme-black",
+          fxName: "Złote serduszka i listy 💌"
+        },
+        {
+          day: 10,
+          iso: "2026-12-14",
+          dateLabel: "14 grudnia (Poniedziałek)",
+          shortDate: "14 gru",
+          title: "Dzień z zagadką",
+          desc: "Zajrzyj dziś do kuchni – czeka tam słoik po brzegi wypełniony krówkami lub pierniczkami. Oszacuj ich liczbę i podaj swój typ – osoba, która będzie najbliżej prawdy, zgarnia cały słoik! 🍬❓",
+          emojis: "🍬❓🏺",
+          theme: "theme-yellow",
+          fxName: "Znaki zapytania i cukierki 🍬"
+        },
+        {
+          day: 11,
+          iso: "2026-12-15",
+          dateLabel: "15 grudnia (Wtorek)",
+          shortDate: "15 gru",
+          title: "Dzień Ubierania Choinki.",
+          desc: "Dziś świętujemy Dzień Ubierania Choinki – wpadaj zawiesić bombkę i sprawdzić, czy lampki na pewno nie są splątane! 🎄✨",
+          emojis: "🎄✨🔮",
+          theme: "theme-black",
+          fxName: "Kolorowe bombki choinkowe 🎄"
+        },
+        {
+          day: 12,
+          iso: "2026-12-16",
+          dateLabel: "16 grudnia (Środa)",
+          shortDate: "16 gru",
+          title: "Dzień Bamboszy",
+          desc: "Poczuj się dziś w pracy jak w domu – zamień wyjściowe buty na swoje ulubione, najwygodniejsze kapcie i ciesz się maksymalnym komfortem przez cały dzień! 🥿🦌",
+          emojis: "🥿🦌🏠",
+          theme: "theme-red",
+          fxName: "Przytulne bambosze 🥿"
+        },
+        {
+          day: 13,
+          iso: "2026-12-17",
+          dateLabel: "17 grudnia (Czwartek)",
+          shortDate: "17 gru",
+          title: "Ugly Christmas Sweater",
+          desc: "Wyciągnij z dna szafy swój najbardziej świąteczny, kolorowy i przesadzony sweter – dziś wszyscy stawiamy na maksimum świątecznego blasku i dobrego humoru! 🧶🎄",
+          emojis: "🧶🎄❄️",
+          theme: "theme-black",
+          fxName: "Świąteczne sweterki i płatki 🧶"
+        },
+        {
+          day: 14,
+          iso: "2026-12-18",
+          dateLabel: "18 grudnia (Piątek)",
+          shortDate: "18 gru",
+          title: "Pokaż Swój Kubek",
+          desc: "Czas na rewię kubków! ☕ Wyciągnij z szafki swojego ulubionego towarzysza poranków – z reniferem, Mikołajem albo po prostu tego jedynego – i widzimy się na wspólnej porannej kawie! ☕🎅",
+          emojis: "☕🎅🍫",
+          theme: "theme-red",
+          fxName: "Parujące kubki kakao ☕"
+        },
+        {
+          day: 15,
+          iso: "2026-12-21",
+          dateLabel: "21 grudnia (Poniedziałek)",
+          shortDate: "21 gru",
+          title: "Mikołajkowy „Freeze” (Zastygnij!)",
+          desc: "Uwaga, Mikołaj patrzy! 🎅 Bądź dziś czujny! Gdy wyznaczona osoba krzyknie hasło „Mikołaj patrzy!”, wszyscy w zasięgu wzroku zastygają w bezruchu na 10 sekund dokładnie w takiej pozie, w jakiej akurat są! ❄️🛑",
+          emojis: "❄️🛑🎅",
+          theme: "theme-red",
+          fxName: "Mroźny szron i lodowe kryształki ❄️"
+        },
+        {
+          day: 16,
+          iso: "2026-12-22",
+          dateLabel: "22 grudnia (Wtorek)",
+          shortDate: "22 gru",
+          title: "Świąteczny wąż!",
+          desc: "Uwaga, odjeżdża świąteczny pociąg! 🚂🎅 Czas rozruszać kości przy biurkach – łapiemy się w tanecznego węża (jak na najlepszym weselu!) i ruszamy za prowodyrem w czapeczce na rundkę po firmie! 💃🕺",
+          emojis: "💃🕺🚂",
+          theme: "theme-yellow",
+          fxName: "Świąteczny pociąg dołem ekranu 🚂"
+        },
+        {
+          day: 17,
+          iso: "2026-12-23",
+          dateLabel: "23 grudnia (Środa)",
+          shortDate: "23 gru",
+          title: "Korpo Góra, domowy dół",
+          desc: "Dzień przed świętami stawiamy na home-office'owy klasyk w biurze! Góra elegancka i gotowa na wideorozmowę (koszula, marynarka lub świąteczny sweter), a na dole pełen luz – dresy, legginsy czy piżamowe spodnie! 👔🩳",
+          emojis: "👔🩳🎄",
+          theme: "theme-black",
+          fxName: "Świąteczne fajerwerki 🎆"
+        }
+      ];
+
+      /* ========================================================================
+         2. 17 DEDYKOWANYCH ILUSTRACJI WEKTOROWYCH W STYLU PLAKATU
+         ======================================================================== */
+      var POSTER_SVGS = {
+        1: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="54" r="28" fill="#FFE0C2" stroke="#111" stroke-width="2.5"/><path d="M22,56 Q22,88 50,90 Q78,88 78,56 Q64,66 50,62 Q36,66 22,56 Z" fill="#FFF" stroke="#111" stroke-width="2.5"/><path d="M24,42 Q50,12 78,42 Z" fill="#D91E18" stroke="#111" stroke-width="2.5"/><rect x="20" y="38" width="60" height="10" rx="5" fill="#FFF" stroke="#111" stroke-width="2"/><circle cx="82" cy="40" r="7" fill="#FFF" stroke="#111" stroke-width="2"/><circle cx="40" cy="50" r="3" fill="#111"/><circle cx="60" cy="50" r="3" fill="#111"/><circle cx="50" cy="56" r="4" fill="#D91E18"/></svg>',
+        2: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="14" y="56" width="72" height="10" rx="3" fill="#B45309" stroke="#111" stroke-width="2.5"/><rect x="20" y="66" width="12" height="22" fill="#92400E" stroke="#111" stroke-width="2"/><rect x="68" y="66" width="12" height="22" fill="#92400E" stroke="#111" stroke-width="2"/><rect x="34" y="34" width="32" height="20" rx="3" fill="#E5E7EB" stroke="#111" stroke-width="2.5"/><polygon points="76,26 66,54 86,54" fill="#16A34A" stroke="#111" stroke-width="2"/><circle cx="76" cy="24" r="4" fill="#FFD200"/><path d="M12,16 Q50,28 88,16" fill="none" stroke="#111" stroke-width="2"/><circle cx="28" cy="20" r="4" fill="#D91E18"/><circle cx="50" cy="22" r="4" fill="#FFD200"/><circle cx="72" cy="20" r="4" fill="#16A34A"/></svg>',
+        3: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="38,8 48,34 54,34 46,8" fill="#D91E18"/><polygon points="62,8 52,34 46,34 54,8" fill="#FFD200"/><rect x="20" y="34" width="60" height="48" rx="8" fill="#FFF" stroke="#111" stroke-width="2.5"/><rect x="28" y="44" width="18" height="22" rx="3" fill="#FFD200" stroke="#111" stroke-width="2"/><polygon points="28,54 46,66 28,66" fill="#D91E18"/><rect x="52" y="46" width="20" height="6" rx="2" fill="#D91E18"/><rect x="52" y="57" width="16" height="5" rx="2" fill="#111"/><path d="M66,24 L88,34 L72,42 Z" fill="#D91E18" stroke="#111" stroke-width="2"/><circle cx="90" cy="35" r="4" fill="#FFF" stroke="#111" stroke-width="1.5"/></svg>',
+        4: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M26,22 L40,16 L60,16 L74,22 L86,38 L74,46 L68,38 L68,82 L32,82 L32,38 L26,46 L14,38 Z" fill="#FFD200" stroke="#111" stroke-width="2.5"/><rect x="38" y="18" width="7" height="62" fill="#D91E18"/><rect x="55" y="18" width="7" height="62" fill="#D91E18"/><circle cx="58" cy="34" r="5" fill="#111" stroke="#FFF" stroke-width="1.5"/></svg>',
+        5: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M32,48 L24,22 M27,32 L18,28 M68,48 L76,22 M73,32 L82,28" stroke="#78350F" stroke-width="4.5" stroke-linecap="round"/><path d="M26,56 Q50,18 76,56 Z" fill="#D91E18" stroke="#111" stroke-width="2.5"/><rect x="22" y="52" width="56" height="12" rx="6" fill="#FFF" stroke="#111" stroke-width="2"/><circle cx="80" cy="54" r="8" fill="#FFF" stroke="#111" stroke-width="2"/></svg>',
+        6: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="18" y="16" width="64" height="68" rx="8" fill="#FFF" stroke="#111" stroke-width="2.5"/><rect x="24" y="26" width="52" height="42" rx="4" fill="#FEF3C7" stroke="#111" stroke-width="1.5"/><circle cx="50" cy="49" r="14" fill="#D97706" stroke="#111" stroke-width="2"/><circle cx="45" cy="47" r="2" fill="#111"/><circle cx="55" cy="47" r="2" fill="#111"/><path d="M40,38 L60,38 L50,24 Z" fill="#D91E18" stroke="#111" stroke-width="1.5"/><circle cx="28" cy="75" r="3" fill="#D91E18"/><rect x="36" y="73" width="28" height="4" rx="2" fill="#111"/></svg>',
+        7: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><line x1="12" y1="18" x2="88" y2="18" stroke="#111" stroke-width="2.5"/><path d="M26,22 L44,22 L44,58 Q44,74 28,74 Q18,74 18,64 Q18,56 26,54 Z" fill="#FFD200" stroke="#111" stroke-width="2.5"/><rect x="26" y="22" width="18" height="8" fill="#D91E18"/><path d="M62,22 L80,22 L80,58 Q80,74 64,74 Q54,74 54,64 Q54,56 62,54 Z" fill="#D91E18" stroke="#111" stroke-width="2.5"/><rect x="62" y="22" width="18" height="8" fill="#FFD200"/></svg>',
+        8: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="38" cy="46" r="20" fill="#B45309" stroke="#111" stroke-width="2.5"/><circle cx="38" cy="46" r="13" fill="none" stroke="#FFF" stroke-width="2" stroke-dasharray="4 3"/><circle cx="66" cy="64" r="18" fill="#F97316" stroke="#111" stroke-width="2.5"/><path d="M66,46 Q72,38 78,42" fill="none" stroke="#16A34A" stroke-width="3" stroke-linecap="round"/><circle cx="42" cy="74" r="12" fill="#FB923C" stroke="#111" stroke-width="2"/></svg>',
+        9: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="16" y="34" width="68" height="46" rx="6" fill="#FDE68A" stroke="#111" stroke-width="2.5"/><polygon points="16,34 50,14 84,34" fill="#FCD34D" stroke="#111" stroke-width="2.5"/><rect x="26" y="24" width="48" height="36" rx="4" fill="#FFF" stroke="#111" stroke-width="2"/><path d="M50,48 C42,40 36,34 42,29 C46,26 50,30 50,33 C50,30 54,26 58,29 C64,34 58,40 50,48 Z" fill="#D91E18"/><polyline points="16,34 50,60 84,34" fill="none" stroke="#111" stroke-width="2.5"/></svg>',
+        10: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="32" y="14" width="36" height="10" rx="3" fill="#D91E18" stroke="#111" stroke-width="2.5"/><rect x="26" y="24" width="48" height="62" rx="12" fill="#E0F2FE" stroke="#111" stroke-width="2.5"/><circle cx="40" cy="70" r="6" fill="#FFD200"/><circle cx="56" cy="72" r="6" fill="#D91E18"/><circle cx="48" cy="60" r="6" fill="#16A34A"/><circle cx="60" cy="58" r="5" fill="#F97316"/><text x="50" y="54" text-anchor="middle" font-size="28" font-weight="900" fill="#111">?</text></svg>',
+        11: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="44" y="76" width="12" height="12" fill="#78350F" stroke="#111" stroke-width="2"/><polygon points="50,18 22,76 78,76" fill="#16A34A" stroke="#111" stroke-width="2.5"/><polygon points="50,10 53,16 60,16 55,20 57,26 50,22 43,26 45,20 40,16 47,16" fill="#FFD200" stroke="#111" stroke-width="1.5"/><circle cx="44" cy="44" r="4" fill="#D91E18"/><circle cx="58" cy="56" r="4" fill="#FFD200"/><circle cx="38" cy="64" r="4" fill="#FFD200"/><circle cx="62" cy="68" r="4" fill="#D91E18"/></svg>',
+        12: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><ellipse cx="34" cy="54" rx="16" ry="28" fill="#D97706" stroke="#111" stroke-width="2.5"/><ellipse cx="34" cy="62" rx="11" ry="14" fill="#FEF3C7"/><circle cx="34" cy="66" r="4" fill="#D91E18"/><ellipse cx="66" cy="54" rx="16" ry="28" fill="#D97706" stroke="#111" stroke-width="2.5"/><ellipse cx="66" cy="62" rx="11" ry="14" fill="#FEF3C7"/><circle cx="66" cy="66" r="4" fill="#D91E18"/></svg>',
+        13: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M28,22 L40,16 L60,16 L72,22 L86,44 L74,52 L66,40 L66,82 L34,82 L34,40 L26,52 L14,44 Z" fill="#15803D" stroke="#111" stroke-width="2.5"/><rect x="34" y="36" width="32" height="12" fill="#D91E18"/><rect x="34" y="56" width="32" height="10" fill="#FFD200"/><circle cx="44" cy="42" r="2.5" fill="#FFF"/><circle cx="56" cy="42" r="2.5" fill="#FFF"/></svg>',
+        14: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M68,42 L80,42 Q86,42 86,54 Q86,66 80,66 L68,66" fill="none" stroke="#111" stroke-width="4"/><rect x="22" y="34" width="46" height="46" rx="8" fill="#FFD200" stroke="#111" stroke-width="2.5"/><rect x="22" y="54" width="46" height="12" fill="#D91E18"/><circle cx="34" cy="34" r="4" fill="#FFF" stroke="#111" stroke-width="1.5"/><circle cx="45" cy="34" r="4" fill="#FFF" stroke="#111" stroke-width="1.5"/><circle cx="56" cy="34" r="4" fill="#FFF" stroke="#111" stroke-width="1.5"/><path d="M36,22 Q34,14 38,10 M50,22 Q48,14 52,10" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/></svg>',
+        15: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="52" r="28" fill="#FFE0C2" stroke="#111" stroke-width="2.5"/><path d="M22,54 Q22,86 50,88 Q78,86 78,54 Q64,62 50,58 Q36,62 22,54 Z" fill="#FFF" stroke="#111" stroke-width="2.5"/><path d="M24,40 Q50,12 78,40 Z" fill="#D91E18" stroke="#111" stroke-width="2.5"/><rect x="20" y="36" width="60" height="9" rx="4.5" fill="#FFF" stroke="#111" stroke-width="2"/><circle cx="41" cy="48" r="3.5" fill="#111"/><circle cx="59" cy="48" r="3.5" fill="#111"/><circle cx="50" cy="56" r="4.5" fill="#111"/></svg>',
+        16: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="36" r="8" fill="#FFE0C2" stroke="#111" stroke-width="2"/><rect x="16" y="46" width="16" height="26" rx="4" fill="#D91E18" stroke="#111" stroke-width="2"/><circle cx="50" cy="36" r="8" fill="#FFE0C2" stroke="#111" stroke-width="2"/><rect x="42" y="46" width="16" height="26" rx="4" fill="#FFD200" stroke="#111" stroke-width="2"/><circle cx="76" cy="36" r="8" fill="#FFE0C2" stroke="#111" stroke-width="2"/><rect x="68" y="46" width="16" height="26" rx="4" fill="#111" stroke="#111" stroke-width="2"/><line x1="32" y1="54" x2="44" y2="54" stroke="#111" stroke-width="3"/><line x1="58" y1="54" x2="70" y2="54" stroke="#111" stroke-width="3"/></svg>',
+        17: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M30,18 L70,18 L78,48 L22,48 Z" fill="#FFF" stroke="#111" stroke-width="2.5"/><polygon points="50,20 46,44 50,48 54,44" fill="#D91E18"/><path d="M30,50 L70,50 L74,84 L54,84 L50,66 L46,84 L26,84 Z" fill="#FFD200" stroke="#111" stroke-width="2.5"/><line x1="30" y1="60" x2="70" y2="60" stroke="#D91E18" stroke-width="3"/><line x1="28" y1="72" x2="72" y2="72" stroke="#D91E18" stroke-width="3"/></svg>'
+      };
+
+      /* ========================================================================
+         3. STAN APLIKACJI I PAMIĘĆ LOCALSTORAGE
+         ======================================================================== */
+      var STORAGE_OPEN_KEY = "jaga_advent_2026_opened";
+      var STORAGE_DONE_KEY = "jaga_advent_2026_done";
+
+      function loadArray(key) {
+        try {
+          var raw = localStorage.getItem(key);
+          var parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function saveArray(key, arr) {
+        try {
+          localStorage.setItem(key, JSON.stringify(arr));
+        } catch (e) {
+          /* Ignorujemy brak dostępu do localStorage w trybie prywatnym */
+        }
+      }
+
+      var openedDays = loadArray(STORAGE_OPEN_KEY);
+      var doneDays = loadArray(STORAGE_DONE_KEY);
+
+      /* ========================================================================
+         4. ZARZĄDZANIE DATĄ, BLOKADĄ (DZIŚ + JUTRO + WEEKEND) I TRYBEM ZESPOŁU
+         ======================================================================== */
+      var urlParams = new URLSearchParams(window.location.search);
+      var isTeamMode = urlParams.get("mode") === "team";
+
+      function getRealTodayISO() {
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = String(now.getMonth() + 1).padStart(2, "0");
+        var d = String(now.getDate()).padStart(2, "0");
+        return y + "-" + m + "-" + d;
+      }
+
+      /* Domyślna symulowana data: jeśli jesteśmy w oknie 1-23 grudnia 2026, używamy prawdziwej daty;
+         w przeciwnym razie startujemy od 2026-12-01, aby można było od razu przetestować kalendarz */
+      var realISO = getRealTodayISO();
+      var currentSimISO = (realISO >= "2026-12-01" && realISO <= "2026-12-24") ? realISO : "2026-12-01";
+      var activeModalDay = null;
+      var toastTimer = null;
+
+      function parseISODate(isoStr) {
+        var parts = isoStr.split("-");
+        return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+      }
+
+      /* Oblicza maksymalną odblokowaną datę:
+         - DZIŚ + 1 dzień (JUTRO), aby zapowiedzieć zadanie dzień wcześniej
+         - W piątek (dzień tygodnia === 5) odblokowuje się +3 dni (do poniedziałku) */
+      function getMaxAllowedDate(baseISO) {
+        var base = parseISODate(baseISO);
+        var dow = base.getDay(); // 0 = Niedziela, 5 = Piątek, 6 = Sobota
+        var extraDays = 1;
+        if (dow === 5) {
+          extraDays = 3; // Piątek -> otwiera też poniedziałek
+        } else if (dow === 6) {
+          extraDays = 2; // Sobota -> otwiera też poniedziałek
+        }
+        var maxDate = new Date(base.getTime());
+        maxDate.setDate(maxDate.getDate() + extraDays);
+        return maxDate;
+      }
+
+      function getUnlockStatus(dayObj, baseISO) {
+        var baseDate = parseISODate(baseISO);
+        var targetDate = parseISODate(dayObj.iso);
+        var maxAllowed = getMaxAllowedDate(baseISO);
+
+        if (targetDate.getTime() === baseDate.getTime()) {
+          return { unlocked: true, label: "🔥 DZIŚ", isToday: true };
+        }
+        if (targetDate.getTime() < baseDate.getTime()) {
+          return { unlocked: true, label: "🔓 Otwarte", isToday: false };
+        }
+        if (targetDate.getTime() <= maxAllowed.getTime()) {
+          return { unlocked: true, label: "👀 Zapowiedź", isToday: false };
+        }
+
+        /* Obliczamy, kiedy okienko stanie się dostępne jako zapowiedź (1 dzień wcześniej lub w piątek przed weekendem) */
+        var unlockOn = new Date(targetDate.getTime());
+        if (unlockOn.getDay() === 1) {
+          unlockOn.setDate(unlockOn.getDate() - 3); // Poniedziałkowe zadanie zapowiadamy w piątek
+        } else {
+          unlockOn.setDate(unlockOn.getDate() - 1);
+        }
+        var uDay = unlockOn.getDate();
+        return {
+          unlocked: false,
+          label: "🔒 Od " + uDay + " gru",
+          unlockDayText: uDay + " grudnia",
+          isToday: false
+        };
+      }
+
+      /* Określa aktywny numer dnia (1–17) dla animacji tła */
+      function getActiveDayNumber(baseISO) {
+        if (baseISO < "2026-12-01") {
+          return 1;
+        }
+        var found = DAYS_DATA[DAYS_DATA.length - 1].day;
+        for (var i = 0; i < DAYS_DATA.length; i++) {
+          if (DAYS_DATA[i].iso <= baseISO) {
+            found = DAYS_DATA[i].day;
+          }
+        }
+        return found;
+      }
+
+      /* ========================================================================
+         5. POWIADOMIENIA TOAST I KONFETTI
+         ======================================================================== */
+      function showToast(message) {
+        var toast = document.getElementById("toast-banner");
+        toast.textContent = message;
+        toast.classList.add("show");
+        if (toastTimer) {
+          clearTimeout(toastTimer);
+        }
+        toastTimer = setTimeout(function () {
+          toast.classList.remove("show");
+        }, 3400);
+      }
+
+      function spawnConfetti(originEl) {
+        var rect = originEl.getBoundingClientRect();
+        var centerX = rect.left + rect.width / 2;
+        var centerY = rect.top + rect.height / 2;
+        var colors = ["#FFD200", "#D91E18", "#FFFFFF", "#111111"];
+
+        for (var i = 0; i < 28; i++) {
+          var piece = document.createElement("div");
+          piece.className = "confetti-piece";
+          piece.style.left = centerX + "px";
+          piece.style.top = centerY + "px";
+          piece.style.backgroundColor = colors[i % colors.length];
+          var angle = (Math.PI * 2 * i) / 28 + (Math.random() - 0.5) * 0.4;
+          var dist = 70 + Math.random() * 140;
+          piece.style.setProperty("--cx", Math.cos(angle) * dist + "px");
+          piece.style.setProperty("--cy", (Math.sin(angle) * dist + 110) + "px");
+          document.body.appendChild(piece);
+
+          (function (el) {
+            setTimeout(function () {
+              if (el.parentNode) {
+                el.parentNode.removeChild(el);
+              }
+            }, 2250);
+          })(piece);
+        }
+      }
+
+      /* ========================================================================
+         6. 17 UNIKALNYCH CODZIENNYCH ANIMACJI TŁA
+         ======================================================================== */
+      var fxInterval = null;
+
+      function startDailyAnimation(dayNum) {
+        var layer = document.getElementById("fx-layer");
+        layer.innerHTML = "";
+        if (fxInterval) {
+          clearInterval(fxInterval);
+          fxInterval = null;
+        }
+
+        /* Specjalny efekt mroźnego szronu dla Dnia 15 (Freeze!) */
+        if (dayNum === 15) {
+          var frost = document.createElement("div");
+          frost.className = "fx-frost-vignette";
+          layer.appendChild(frost);
+        }
+
+        /* Specjalny efekt świątecznego pociągu jadącego dołem ekranu dla Dnia 16 */
+        if (dayNum === 16) {
+          var train = document.createElement("div");
+          train.className = "fx-train";
+          train.textContent = "🚂🎅🎄💃🕺🎶";
+          layer.appendChild(train);
+        }
+
+        /* Specjalny efekt biegnących dołem skrzatów dla Dnia 3 */
+        if (dayNum === 3) {
+          var spawnElf = function () {
+            var elf = document.createElement("div");
+            elf.className = "fx-runner";
+            elf.textContent = "🧝‍♂️🎁🧝‍♀️";
+            elf.style.animationDuration = (7 + Math.random() * 4) + "s";
+            layer.appendChild(elf);
+            setTimeout(function () {
+              if (elf.parentNode) elf.parentNode.removeChild(elf);
+            }, 11500);
+          };
+          spawnElf();
+          fxInterval = setInterval(spawnElf, 4500);
+          return;
+        }
+
+        /* Specjalny efekt fajerwerków dla Dnia 17 */
+        if (dayNum === 17) {
+          var fwIcons = ["🎆", "🎇", "✨", "💛", "❤️"];
+          fxInterval = setInterval(function () {
+            var fw = document.createElement("div");
+            fw.className = "fx-firework";
+            fw.textContent = fwIcons[Math.floor(Math.random() * fwIcons.length)];
+            fw.style.left = (10 + Math.random() * 80) + "vw";
+            fw.style.top = (10 + Math.random() * 55) + "vh";
+            layer.appendChild(fw);
+            setTimeout(function () {
+              if (fw.parentNode) fw.parentNode.removeChild(fw);
+            }, 1850);
+          }, 700);
+          return;
+        }
+
+        /* Zestawy ikon spadających w tle dla pozostałych dni */
+        var iconSets = {
+          1: ["❄️", "❅", "❆", "🎅"],
+          2: ["🎁", "🎀", "✨", "🎄"],
+          4: ["⚽", "🟡", "🔴", "🧣"],
+          5: ["🎅", "🦌", "🎩", "❄️"],
+          6: ["😂", "🤣", "📱", "🐶"],
+          7: ["🧦", "🎄", "📸", "✨"],
+          8: ["🍪", "🍊", "⭐", "✨"],
+          9: ["💌", "💛", "❤️", "✨"],
+          10: ["❓", "🍬", "🍭", "✨"],
+          11: ["🔮", "🎄", "⭐", "✨"],
+          12: ["🥿", "🏠", "🦌", "❄️"],
+          13: ["🧶", "🎄", "❄️", "✨"],
+          14: ["☕", "🍫", "🎅", "✨"],
+          15: ["❄️", "🧊", "🛑", "❅"],
+          16: ["🎶", "🎵", "🎅", "✨"]
+        };
+
+        var icons = iconSets[dayNum] || ["❄️", "✨"];
+
+        function spawnDrop() {
+          var drop = document.createElement("div");
+          drop.className = "fx-drop";
+          drop.textContent = icons[Math.floor(Math.random() * icons.length)];
+          drop.style.left = Math.random() * 96 + "vw";
+          drop.style.fontSize = (16 + Math.random() * 14) + "px";
+          drop.style.setProperty("--drift", (Math.random() * 80 - 40) + "px");
+          drop.style.setProperty("--rot", (Math.random() * 360 - 180) + "deg");
+          var duration = 5 + Math.random() * 5;
+          drop.style.animationDuration = duration + "s";
+          layer.appendChild(drop);
+
+          setTimeout(function () {
+            if (drop.parentNode) {
+              drop.parentNode.removeChild(drop);
+            }
+          }, duration * 1000 + 200);
+        }
+
+        /* Kilka cząstek od razu na start */
+        for (var i = 0; i < 8; i++) {
+          setTimeout(spawnDrop, i * 220);
+        }
+        fxInterval = setInterval(spawnDrop, 650);
+      }
+
+      /* ========================================================================
+         7. RENDEROWANIE OKIENEK I OBSŁUGA MODALA
+         ======================================================================== */
+      function formatPolishDate(isoStr) {
+        var months = [
+          "stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca",
+          "lipca", "sierpnia", "września", "października", "listopada", "grudnia"
+        ];
+        var d = parseISODate(isoStr);
+        return d.getDate() + " " + months[d.getMonth()];
+      }
+
+      function updateStatusBar() {
+        var activeNum = getActiveDayNumber(currentSimISO);
+        var activeObj = DAYS_DATA[activeNum - 1] || DAYS_DATA[0];
+
+        document.getElementById("status-date-label").innerHTML =
+          "📅 Dzisiejsza data: <b>" + formatPolishDate(currentSimISO) + "</b>";
+        document.getElementById("status-progress-label").innerHTML =
+          "✅ Wykonane: <b>" + doneDays.length + " / " + DAYS_DATA.length + "</b>";
+        document.getElementById("status-fx-label").innerHTML =
+          "✨ Efekt dnia: <b>" + activeObj.fxName + "</b>";
+      }
+
+      function openTaskModal(dayObj) {
+        activeModalDay = dayObj.day;
+        document.getElementById("modal-day-badge").textContent =
+          "Okienko #" + dayObj.day + " • " + dayObj.dateLabel;
+        document.getElementById("modal-art").innerHTML = POSTER_SVGS[dayObj.day] || "";
+        document.getElementById("modal-title").textContent = dayObj.title;
+        document.getElementById("modal-emojis").textContent = dayObj.emojis;
+        document.getElementById("modal-desc").textContent = dayObj.desc;
+
+        var isDone = doneDays.indexOf(dayObj.day) !== -1;
+        var doneBtn = document.getElementById("modal-done-btn");
+        doneBtn.textContent = isDone ? "🏆 Zadanie wykonane! (Cofnij)" : "✅ Oznacz jako wykonane";
+        doneBtn.classList.toggle("is-done", isDone);
+
+        document.getElementById("task-modal").classList.add("active");
+      }
+
+      function closeTaskModal() {
+        document.getElementById("task-modal").classList.remove("active");
+        activeModalDay = null;
+      }
+
+      function toggleDoneDay(dayNum) {
+        var idx = doneDays.indexOf(dayNum);
+        if (idx === -1) {
+          doneDays.push(dayNum);
+          showToast("Brawo! Zadanie #" + dayNum + " oznaczone jako wykonane! 🟡🔴");
+        } else {
+          doneDays.splice(idx, 1);
+        }
+        saveArray(STORAGE_DONE_KEY, doneDays);
+        renderCalendar();
+        if (activeModalDay === dayNum) {
+          var obj = DAYS_DATA[dayNum - 1];
+          if (obj) openTaskModal(obj);
+        }
+      }
+
+      function renderCalendar() {
+        var grid = document.getElementById("calendar-grid");
+        grid.innerHTML = "";
+
+        DAYS_DATA.forEach(function (dayObj) {
+          var status = getUnlockStatus(dayObj, currentSimISO);
+          var isOpened = status.unlocked && openedDays.indexOf(dayObj.day) !== -1;
+          var isDone = doneDays.indexOf(dayObj.day) !== -1;
+
+          var card = document.createElement("article");
+          card.className = "door-card";
+          if (!status.unlocked) card.classList.add("is-locked");
+          if (status.isToday) card.classList.add("is-today");
+          if (isOpened) card.classList.add("is-open");
+
+          /* Wnętrze okienka */
+          var inside = document.createElement("div");
+          inside.className = "door-inside";
+          inside.innerHTML =
+            '<div class="inside-top-row">' +
+              '<span class="inside-day-pill">#' + dayObj.day + '</span>' +
+              '<span class="inside-date-tag">' + dayObj.shortDate + '</span>' +
+            '</div>' +
+            '<div class="inside-art">' + (POSTER_SVGS[dayObj.day] || "") + '</div>' +
+            '<div class="inside-title">' + dayObj.title + '</div>' +
+            '<div class="inside-emojis">' + dayObj.emojis + '</div>' +
+            '<div class="inside-actions">' +
+              '<button type="button" class="btn-details">📖 Zobacz zadanie</button>' +
+              '<button type="button" class="btn-done ' + (isDone ? 'is-done' : '') + '">' +
+                (isDone ? '🏆 Wykonane!' : '☑️ Zaliczone') +
+              '</button>' +
+            '</div>';
+
+          /* Obsługa przycisków wewnątrz otwartego okienka */
+          var detailsBtn = inside.querySelector(".btn-details");
+          detailsBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            openTaskModal(dayObj);
+          });
+
+          var doneBtn = inside.querySelector(".btn-done");
+          doneBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            toggleDoneDay(dayObj.day);
+          });
+
+          /* Zewnętrzne drzwiczki 3D */
+          var front = document.createElement("div");
+          front.className = "door-front " + dayObj.theme;
+          front.innerHTML =
+            '<div class="door-top-meta">' +
+              '<span>' + dayObj.shortDate + '</span>' +
+              '<span>' + (status.unlocked ? '🎄' : '🔒') + '</span>' +
+            '</div>' +
+            '<div class="door-number">' + dayObj.day + '</div>' +
+            '<div class="door-badge-status">' + status.label + '</div>';
+
+          /* Kliknięcie w kartę */
+          card.addEventListener("click", function () {
+            if (!status.unlocked) {
+              card.classList.remove("shake");
+              void card.offsetWidth; // restart animacji
+              card.classList.add("shake");
+              showToast("🔒 Cierpliwości! Okienko #" + dayObj.day + " (" + dayObj.dateLabel + ") odblokuje się " + status.unlockDayText + ".");
+              return;
+            }
+
+            if (openedDays.indexOf(dayObj.day) === -1) {
+              openedDays.push(dayObj.day);
+              saveArray(STORAGE_OPEN_KEY, openedDays);
+              card.classList.add("is-open");
+              spawnConfetti(card);
+              setTimeout(function () {
+                openTaskModal(dayObj);
+              }, 380);
+            } else {
+              openTaskModal(dayObj);
+            }
+          });
+
+          card.appendChild(inside);
+          card.appendChild(front);
+          grid.appendChild(card);
+        });
+
+        updateStatusBar();
+      }
+
+      /* ========================================================================
+         8. INICJALIZACJA PANELU ORGANIZATORA I ZDARZEŃ
+         ======================================================================== */
+      function initOrganizerPanel() {
+        var panel = document.getElementById("organizer-panel");
+        if (isTeamMode) {
+          panel.classList.add("hidden");
+          return;
+        }
+
+        var select = document.getElementById("sim-date-select");
+        var beforeOption = document.createElement("option");
+        beforeOption.value = "2026-11-30";
+        beforeOption.textContent = "30 listopada (Przed startem — odblokuje #1)";
+        select.appendChild(beforeOption);
+
+        DAYS_DATA.forEach(function (d) {
+          var opt = document.createElement("option");
+          opt.value = d.iso;
+          opt.textContent = "Dzień " + d.day + " — " + d.dateLabel;
+          select.appendChild(opt);
+        });
+
+        select.value = currentSimISO;
+
+        select.addEventListener("change", function () {
+          currentSimISO = select.value;
+          renderCalendar();
+          startDailyAnimation(getActiveDayNumber(currentSimISO));
+          showToast("📅 Symulowana data zmieniona na: " + formatPolishDate(currentSimISO));
+        });
+
+        /* Kopiowanie linku z ?mode=team przy użyciu document.execCommand('copy') */
+        document.getElementById("copy-team-link-btn").addEventListener("click", function () {
+          var baseUrl = window.location.href.split("?")[0];
+          var teamUrl = baseUrl + "?mode=team";
+
+          var tempInput = document.createElement("textarea");
+          tempInput.value = teamUrl;
+          tempInput.style.position = "fixed";
+          tempInput.style.opacity = "0";
+          document.body.appendChild(tempInput);
+          tempInput.select();
+          try {
+            document.execCommand("copy");
+            showToast("📋 Skopiowano link dla zespołu (?mode=team)!");
+          } catch (err) {
+            showToast("Link dla zespołu: " + teamUrl);
+          }
+          document.body.removeChild(tempInput);
+        });
+
+        /* Reset otwartych i wykonanych okienek */
+        document.getElementById("reset-progress-btn").addEventListener("click", function () {
+          openedDays = [];
+          doneDays = [];
+          saveArray(STORAGE_OPEN_KEY, openedDays);
+          saveArray(STORAGE_DONE_KEY, doneDays);
+          renderCalendar();
+          showToast("🔄 Wszystkie okienka zostały ponownie zamknięte!");
+        });
+      }
+
+      /* Zdarzenia modala */
+      document.getElementById("modal-close-btn").addEventListener("click", closeTaskModal);
+      document.getElementById("modal-done-btn").addEventListener("click", function () {
+        if (activeModalDay !== null) {
+          toggleDoneDay(activeModalDay);
+        }
+      });
+      document.getElementById("task-modal").addEventListener("click", function (e) {
+        if (e.target === this) {
+          closeTaskModal();
+        }
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+          closeTaskModal();
+        }
+      });
+
+      /* Start aplikacji */
+      initOrganizerPanel();
+      renderCalendar();
+      startDailyAnimation(getActiveDayNumber(currentSimISO));
+    })();
+  </script>
+</body>
+</html>
